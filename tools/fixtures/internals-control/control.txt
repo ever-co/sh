@@ -1,0 +1,11 @@
+upstream = orders-api.shop-prod.svc:8080
+secret path kv/shop/prod/api
+GET /v1/my/instances
+x-ever-session: abc
+sk_live_abc
+cache 10.1.2.3:6379
+builder build-box.lan
+portal app-dev.ever.co
+as planned in P9-99
+PUBLIC-SAFE DRAFT
+docs at https://wiki.corp.example.net/page
