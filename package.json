@@ -1,0 +1,26 @@
+{
+  "name": "ever-sh",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "content": "pnpm --filter @ever-sh/web run content",
+    "guards": "sh tools/guards.sh",
+    "refresh-targets": "node tools/refresh-targets.mjs",
+    "preflight": "sh tools/preflight.sh",
+    "licences": "node tools/check-npm-licences.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "turbo": "2.11.6",
+    "yaml": "2.9.1"
+  }
+}

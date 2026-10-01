@@ -1,0 +1,3 @@
+packages:
+  - "apps/*" # the ever.sh web site
+  - "packages/*" # none yet

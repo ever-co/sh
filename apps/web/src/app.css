@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens: a hand-written copy of the values the Ever web apps use (colour, radius, brand
+ * gradient, layout, motion). Nothing is generated or fetched: change a value here, in this file.
+ *
+ * Colours are HSL triplets so a utility can apply alpha (`hsl(var(--primary) / 0.5)`). The theme
+ * follows the system preference; `data-theme="light" | "dark"` on <html> pins it.
+ */
+:root {
+  color-scheme: light;
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 42%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 210 40% 98%;
+  --success: 142 72% 24%;
+  --success-foreground: 0 0% 100%;
+  --warning: 32 95% 30%;
+  --warning-foreground: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --radius: 0.5rem;
+
+  --brand-from: 263 83% 58%;
+  --brand-to: 295 72% 40%;
+  --brand-gradient: linear-gradient(90deg, hsl(var(--brand-from)) 0%, hsl(var(--brand-to)) 100%);
+
+  --page-max: 1200px;
+  --gutter: 20px;
+
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --ever-font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+  --ever-font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 69% 58%;
+    --success-foreground: 222.2 84% 4.9%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 50%;
+  --destructive-foreground: 210 40% 98%;
+  --success: 142 69% 58%;
+  --success-foreground: 222.2 84% 4.9%;
+  --warning: 38 92% 60%;
+  --warning-foreground: 222.2 84% 4.9%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}
+
+/* Tailwind theme over the tokens: `bg-background`, `text-muted-foreground`, `max-w-page`, ... */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+  --color-brand-from: hsl(var(--brand-from));
+  --color-brand-to: hsl(var(--brand-to));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--ever-font-sans);
+  --font-mono: var(--ever-font-mono);
+
+  --container-page: var(--page-max);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  a {
+    @apply underline-offset-4;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .brand-text {
+    background-image: var(--brand-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .card {
+    @apply rounded-xl border border-border bg-card p-5 text-card-foreground;
+  }
+
+  .muted {
+    @apply text-muted-foreground;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground;
+  }
+
+  .button {
+    @apply inline-flex items-center rounded-md px-4 py-2 text-sm font-medium no-underline;
+    background-image: var(--brand-gradient);
+    color: white;
+    transition: opacity var(--motion-fast) var(--ease-out);
+  }
+
+  .button:hover {
+    opacity: 0.9;
+  }
+
+  .button-outline {
+    @apply inline-flex items-center rounded-md border border-border px-4 py-2 text-sm font-medium no-underline hover:bg-accent;
+  }
+
+  .referral-note {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .notice {
+    @apply rounded-lg border border-border bg-muted px-4 py-3 text-sm;
+  }
+
+  /* Compiled Markdown (build-time HTML; no classes inside, so elements are styled here). */
+  .prose {
+    @apply max-w-3xl leading-7;
+  }
+
+  .prose > * + * {
+    @apply mt-4;
+  }
+
+  .prose h2 {
+    @apply mt-10 text-xl font-semibold tracking-tight;
+  }
+
+  .prose h3 {
+    @apply mt-8 text-lg font-semibold;
+  }
+
+  .prose a {
+    @apply font-medium underline;
+  }
+
+  .prose ul {
+    @apply list-disc pl-6;
+  }
+
+  .prose ol {
+    @apply list-decimal pl-6;
+  }
+
+  .prose li + li {
+    @apply mt-1;
+  }
+
+  .prose :not(pre) > code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.875em];
+  }
+
+  .prose pre,
+  pre.snippet {
+    @apply overflow-x-auto rounded-lg p-4 font-mono text-sm leading-6;
+  }
+
+  pre.snippet {
+    @apply bg-muted text-foreground;
+  }
+
+  .prose li > ul,
+  .prose li > ol,
+  .prose li > pre {
+    @apply mt-2;
+  }
+
+  .prose table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .prose th,
+  .prose td {
+    @apply border border-border px-3 py-2 text-left align-top;
+  }
+
+  .prose th {
+    @apply bg-muted font-semibold;
+  }
+}
