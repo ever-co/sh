@@ -1,0 +1,157 @@
+name: CI
+
+# Jobs:
+#   rust      the API service (crates/): formatting, Clippy, tests, cargo-deny (advisories,
+#             licences, bans, sources)
+#   web       the site (apps/web): Biome, content build, types, unit tests, build
+#   guards    repository checks, each proven able to fail by its self-test or negative control
+#   licences  the production npm dependency tree carries only permissive licences
+#             (the Rust dependency licences are checked by cargo-deny in the rust job)
+#
+# Runners: the organisation's runners for this repository's own branches and pull requests;
+# `ubuntu-latest` for pull requests from forks and whenever the runner variables are absent, so a
+# fork builds without any of our infrastructure. Nothing here touches a cluster.
+on:
+  push:
+    branches: [develop, stage, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: "1"
+  CARGO_TERM_COLOR: always
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  rust:
+    name: rust
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.RUNNER_LINUX_X64_4 || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install rustup (when the runner image has no Rust)
+        run: |
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs \
+              | sh -s -- --default-toolchain none -y
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+      # A separate step: $GITHUB_PATH takes effect from the next step on.
+      - name: Toolchain (pinned by rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup show active-toolchain
+      - uses: Swatinem/rust-cache@v2
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Tests (the hosting list answers from the compiled-in snapshot)
+        run: cargo test --workspace --locked
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - name: Dependency policy (advisories, permissive licences, no OpenSSL, crates.io only)
+        run: cargo deny check
+
+  web:
+    name: web
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.RUNNER_LINUX_X64_4 || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm at the version `packageManager` pins: the one that wrote the lockfile.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+      - name: Biome (format and lint)
+        run: pnpm exec biome ci .
+      - name: Content build (front matter, links, hosting list against its schema)
+        run: pnpm --filter @ever-sh/web run content
+      - name: Types
+        run: pnpm turbo run typecheck
+      - name: Unit tests
+        run: pnpm turbo run test
+      - name: Build
+        run: pnpm turbo run build
+
+  guards:
+    name: guards
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.RUNNER_LINUX_X64_4 || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: No platform internals (+ self-test)
+        run: node tools/check-no-internals.mjs --self-test && node tools/check-no-internals.mjs
+      - name: Public copy, files and commit messages (phrase list from a secret; skipped without it)
+        env:
+          EVER_BANNED_PHRASES_JSON: ${{ secrets.EVER_BANNED_PHRASES_JSON }}
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          node tools/check-public-copy.mjs --self-test
+          range=""
+          if [ "$EVENT" = "pull_request" ]; then
+            range="origin/${BASE_REF}..HEAD"
+          elif [ -n "$BEFORE" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            range="${BEFORE}..${GITHUB_SHA}"
+          else
+            range="HEAD"
+          fi
+          node tools/check-public-copy.mjs --commits "$range"
+      - name: Canonical origin (EVER_SH_URL is the only origin)
+        run: node tools/check-canonical-origin.mjs --self-test && node tools/check-canonical-origin.mjs
+      - name: Image modules (every local import of serve.mjs is copied by the Dockerfile)
+        run: node tools/check-image-modules.mjs --self-test && node tools/check-image-modules.mjs
+      - name: Workflow shape
+        run: node tools/check-workflow-shape.mjs --self-test && node tools/check-workflow-shape.mjs
+      - name: Frontend stack (SolidJS only)
+        run: node tools/check-frontend-stack.mjs --self-test && node tools/check-frontend-stack.mjs
+      - name: Guard tests (each guard fails on its negative control)
+        run: node --test "tools/*.test.mjs"
+      - name: Hosting data matches its schema
+        run: >-
+          npx --yes -p ajv-cli@5 -p ajv-formats@3 ajv validate --spec=draft2020 -c ajv-formats
+          -s content/hosting/hosts.schema.json -d content/hosting/hosts.yaml
+      - name: Statistics schema equals the published one (once vendored)
+        run: |
+          f=content/stats/ever.stats.v1.schema.json
+          if [ ! -f "$f" ]; then echo "statistics schema not vendored yet: skipped"; exit 0; fi
+          remote=$(curl -fsS --max-time 20 https://api.ever.co/v1/stats/schema | sha256sum | cut -d' ' -f1) \
+            || { echo "statistics schema endpoint unreachable: skipped"; exit 0; }
+          local=$(sha256sum "$f" | cut -d' ' -f1)
+          test "$remote" = "$local" || { echo "$f differs from the published schema"; exit 1; }
+
+  licences:
+    name: licences
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.RUNNER_LINUX_X64_4 || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+      - name: Production dependency licences (permissive only, the tree the web image ships)
+        run: |
+          node tools/check-npm-licences.mjs --self-test
+          pnpm run licences

@@ -1,0 +1,12 @@
+# Later lines win.
+*                          @evereq
+/content/                  @evereq
+/content/platform/         @evereq
+/content/hosting/          @evereq
+/apps/                     @evereq
+/crates/                   @evereq
+/Cargo.toml                @evereq
+/deny.toml                 @evereq
+/tools/                    @evereq
+/.github/                  @evereq
+/deploy/                   @evereq

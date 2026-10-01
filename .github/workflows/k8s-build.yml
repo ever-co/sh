@@ -1,0 +1,226 @@
+name: k8s-build
+
+# Builds the two images this repository ships and pushes them to GHCR, tagged by environment and by
+# commit:
+#
+#   develop -> :dev     stage -> :stage     main -> :prod      (+ :sha-<commit> always)
+#
+#   ghcr.io/ever-co/web-ever-sh       the web site       (deploy/docker/web/Dockerfile)
+#   ghcr.io/ever-co/web-ever-sh-api   its API service    (deploy/docker/api/Dockerfile)
+#
+# A green build is not a running image: each image is booted the way production runs it, with
+# every upstream unreachable, and checked before anything is pushed. Pull requests that touch the
+# images build and boot them without pushing. Deployment picks the environment tag up elsewhere;
+# nothing here touches a cluster.
+on:
+  push:
+    branches: [develop, stage, main]
+  pull_request:
+    paths:
+      - "deploy/docker/**"
+      - ".dockerignore"
+      - ".github/workflows/k8s-build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: k8s-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  web:
+    name: web-ever-sh
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.RUNNER_LINUX_X64_4 || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: t
+        name: Branch -> environment tag
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            develop) tag=dev ;;
+            stage)   tag=stage ;;
+            main)    tag=prod ;;
+            *)       tag="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-100)" ;;
+          esac
+          push=false
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then push=true; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "push=$push" >> "$GITHUB_OUTPUT"
+          echo "branch ${GITHUB_REF_NAME} -> tag :$tag (push=$push)"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        if: steps.t.outputs.push == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/web/Dockerfile
+          load: true
+          tags: web-ever-sh:ci
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/web-ever-sh:buildcache
+
+      # The site must start and answer without its API service (the hosting list falls back to the
+      # copy built into the site), never set a cookie, and keep the connect-code page out of caches.
+      - name: boot smoke
+        run: |
+          set -u
+          cleanup() { docker rm -f ever-sh-smoke >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          cleanup
+          docker run -d --name ever-sh-smoke \
+            -e EVER_SH_URL=http://127.0.0.1:3000 -e EVER_SH_API_URL=http://ever-smoke-api.invalid:9 \
+            web-ever-sh:ci
+          # GET <path> from inside the container (node's fetch; the image has no curl): status line,
+          # headers, blank line, body. The path is an argument, never interpolated into the script.
+          probe() {
+            docker exec ever-sh-smoke node --input-type=module -e '
+              const r = await fetch("http://127.0.0.1:3000" + process.argv[1], { redirect: "manual" });
+              const head = [...r.headers].map(([k, v]) => `${k}: ${v}`).join("\n");
+              process.stdout.write(`${r.status}\n${head}\n\n${await r.text()}`);
+            ' "$1"
+          }
+          ready=0
+          for i in $(seq 1 30); do
+            if probe /healthz 2>/dev/null | head -1 | grep -qx 200; then ready=1; echo "web ready after ${i}s"; break; fi
+            sleep 1
+          done
+          docker logs ever-sh-smoke 2>&1 | tail -20
+          [ "$ready" = 1 ] || { echo "::error::the site never answered /healthz"; exit 1; }
+          check() { # check <path> <expected status> [pattern ...]
+            out=$(probe "$1"); status=$(printf '%s\n' "$out" | head -1)
+            [ "$status" = "$2" ] || { echo "::error::$1 answered $status, expected $2"; exit 1; }
+            shift 2
+            for p in "$@"; do printf '%s' "$out" | grep -qiE -- "$p" || { echo "::error::response lacks /$p/"; exit 1; }; done
+            if printf '%s' "$out" | grep -qi '^set-cookie:'; then echo "::error::a response set a cookie"; exit 1; fi
+          }
+          check /robots.txt 200 '^Disallow: /$'
+          check / 200 '<h1' 'Run <span'
+          check /gauzy/docker 200 'rel="canonical" href="http://127.0.0.1:3000/gauzy/docker"'
+          check "/hosting?product=gauzy" 200 'List as of ' 'We may earn a referral fee' 'rel="sponsored noopener"'
+          check "/install/gauzy?connect=EVC-7K2M-9QHX-3RTW" 200 '^x-robots-tag: noindex' '^cache-control: private, no-store' 'EVER_CONNECT_CODE=EVC-7K2M-9QHX-3RTW'
+          check /install/demand 404 'noindex'
+          check /demand/docker 404
+          check "/gauzy?connect=EVC-7K2M-9QHX-3RTW" 308 '^location: http://127.0.0.1:3000/install/gauzy\?connect=EVC-7K2M-9QHX-3RTW'
+          if probe / | grep -q '<script'; then echo "::error::a runtime-free page shipped a script"; exit 1; fi
+          echo "boot smoke: green"
+
+      - name: push
+        if: steps.t.outputs.push == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/web-ever-sh:${{ steps.t.outputs.tag }}
+            ${{ env.REGISTRY }}/web-ever-sh:sha-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/web-ever-sh:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/web-ever-sh:buildcache,mode=max
+
+      - name: summary
+        if: steps.t.outputs.push == 'true'
+        run: |
+          echo "### Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${REGISTRY}/web-ever-sh:${{ steps.t.outputs.tag }}\` and \`:sha-${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  api:
+    name: web-ever-sh-api
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.RUNNER_LINUX_X64_4 || 'ubuntu-latest' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: t
+        name: Branch -> environment tag
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            develop) tag=dev ;;
+            stage)   tag=stage ;;
+            main)    tag=prod ;;
+            *)       tag="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-100)" ;;
+          esac
+          push=false
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then push=true; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "push=$push" >> "$GITHUB_OUTPUT"
+          echo "branch ${GITHUB_REF_NAME} -> tag :$tag (push=$push)"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        if: steps.t.outputs.push == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/api/Dockerfile
+          load: true
+          tags: web-ever-sh-api:ci
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/web-ever-sh-api:buildcache
+
+      # With the Ever Platform API unreachable the service must start, answer /healthz, and serve
+      # the hosting list from its compiled-in snapshot.
+      - name: boot smoke
+        run: |
+          set -u
+          cleanup() { docker rm -f ever-sh-api-smoke >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          cleanup
+          docker run -d --name ever-sh-api-smoke -e EVER_API_URL=http://ever-smoke-api.invalid:9 web-ever-sh-api:ci
+          probe() { docker exec ever-sh-api-smoke /usr/local/bin/ever-sh-api probe "$1"; }
+          ready=0
+          for i in $(seq 1 30); do
+            if probe /healthz >/dev/null 2>&1; then ready=1; echo "api ready after ${i}s"; break; fi
+            sleep 1
+          done
+          docker logs ever-sh-api-smoke 2>&1 | tail -20
+          [ "$ready" = 1 ] || { echo "::error::the API service never answered /healthz"; exit 1; }
+          probe "/v1/hosting-targets?product=gauzy" | grep -q '"source":"snapshot"' \
+            || { echo "::error::/v1/hosting-targets did not answer from the snapshot"; exit 1; }
+          probe "/v1/hosting-targets/hostinger/link?product=gauzy" | grep -q '"rel":"sponsored noopener"' \
+            || { echo "::error::the referral link is not marked sponsored"; exit 1; }
+          if probe "/v1/hosting-targets?product=nope" >/dev/null 2>&1; then
+            echo "::error::an unknown product was answered with 200"; exit 1
+          fi
+          echo "boot smoke: green"
+
+      - name: push
+        if: steps.t.outputs.push == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/web-ever-sh-api:${{ steps.t.outputs.tag }}
+            ${{ env.REGISTRY }}/web-ever-sh-api:sha-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/web-ever-sh-api:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/web-ever-sh-api:buildcache,mode=max
+
+      - name: summary
+        if: steps.t.outputs.push == 'true'
+        run: |
+          echo "### Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${REGISTRY}/web-ever-sh-api:${{ steps.t.outputs.tag }}\` and \`:sha-${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
