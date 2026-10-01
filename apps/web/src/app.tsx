@@ -10,14 +10,19 @@ import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
 import { ErrorBoundary, For, Suspense } from "solid-js";
 
+import { Logo } from "./components/Logo";
+import { EVER_MARK, SITE_WORDMARK } from "./logos";
 import { PRODUCTS } from "./products";
 
 function Header() {
   return (
     <header class="border-b border-border">
       <div class="mx-auto flex max-w-page flex-wrap items-center gap-x-8 gap-y-2 px-5 py-4">
-        <a href="/" class="brand-text text-xl font-bold no-underline">
-          ever.sh
+        {/* The ever® selfhost lockup, laid out like the one on ever.works: the Ever mark 32 px tall,
+            the wordmark at one pixel per unit. The link's name is the wordmark's text: "ever.sh". */}
+        <a href="/" class="flex shrink-0 items-center gap-2 no-underline">
+          <Logo logo={EVER_MARK} height={32} alt="" />
+          <Logo logo={SITE_WORDMARK} unit={1} class="mt-[3px]" />
         </a>
         <nav aria-label="Site" class="flex flex-wrap gap-x-5 gap-y-1 text-sm">
           <a href="/#products" class="no-underline hover:underline">
@@ -85,6 +90,14 @@ function Footer() {
             </li>
           </ul>
         </div>
+      </div>
+      {/* The trademark note the other Ever sites carry under their footer, word for word. */}
+      <div class="mx-auto max-w-page px-5 pb-10">
+        <p class="footer-note">
+          *All product names, logos, and brands are property of their respective owners. All
+          company, product, and service names used in this website are for identification purposes
+          only. Use of these names, logos, and brands does not imply endorsement.
+        </p>
       </div>
     </footer>
   );

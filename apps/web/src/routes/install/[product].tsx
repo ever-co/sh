@@ -14,6 +14,7 @@ import { Meta, Title } from "@solidjs/meta";
 import { createAsync, useLocation, useParams } from "@solidjs/router";
 import { For, Show } from "solid-js";
 
+import { Logo, NeutralIcon } from "~/components/Logo";
 import { NotFound } from "~/components/NotFound";
 import { ProductNav } from "~/components/ProductNav";
 import { HeadLinks } from "~/components/Seo";
@@ -21,6 +22,7 @@ import { Sources } from "~/components/Sources";
 import { pageAt } from "~/content";
 import { connectStartUrl, parseInstallParams } from "~/install/connect";
 import { SNIPPET_LABELS, snippet } from "~/install/snippets";
+import { SNIPPET_LOGOS } from "~/logos";
 import { installable } from "~/products";
 import { origins } from "~/server/origin";
 
@@ -86,8 +88,13 @@ export default function InstallPage() {
         <For each={blocks()}>
           {(b) => (
             <div class="mt-6">
-              <h3 class="font-semibold">{b.title}</h3>
-              <p class="muted text-sm">{b.file}</p>
+              <div class="flex items-center gap-2.5">
+                <Show when={SNIPPET_LOGOS[b.kind]} fallback={<NeutralIcon kind="file" />}>
+                  {(logo) => <Logo logo={logo()} height={24} />}
+                </Show>
+                <h3 class="font-semibold">{b.title}</h3>
+              </div>
+              <p class="muted mt-1 text-sm">{b.file}</p>
               <pre class="snippet mt-2">
                 <code>{b.text}</code>
               </pre>

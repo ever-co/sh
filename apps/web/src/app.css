@@ -201,6 +201,36 @@
     @apply text-xs text-muted-foreground;
   }
 
+  /* Logos (`~/components/Logo.tsx`): an <img> that keeps its proportions in the box its width and
+     height attributes reserve. */
+  .logo {
+    display: inline-block;
+    flex: none;
+    object-fit: contain;
+  }
+
+  /* On the dark theme, a mark whose own colours do not read there (black, or a dark brand colour)
+     is shown as the brand's white version: a white silhouette of the same mark. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .logo-reverse-dark {
+      filter: brightness(0) invert(1);
+    }
+  }
+
+  :root[data-theme="dark"] .logo-reverse-dark {
+    filter: brightness(0) invert(1);
+  }
+
+  /* The neutral icons (a server, a cloud, a file) are drawn in the muted text colour. */
+  .neutral-icon {
+    flex: none;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .footer-note {
+    @apply max-w-[900px] text-xs leading-5 text-muted-foreground;
+  }
+
   .notice {
     @apply rounded-lg border border-border bg-muted px-4 py-3 text-sm;
   }

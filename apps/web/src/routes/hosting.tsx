@@ -14,8 +14,10 @@ import { For, Show } from "solid-js";
 
 import { columnsFor, type HostingTarget, statusFor } from "~/chooser/model";
 import { docsLink, type RenderedLink, renderLink } from "~/chooser/render";
+import { Logo, NeutralIcon } from "~/components/Logo";
 import { HeadLinks } from "~/components/Seo";
 import { pageAt } from "~/content";
+import { hostLogo, PRODUCT_LOGOS } from "~/logos";
 import { installable, PRODUCTS, type ProductId, productById } from "~/products";
 
 async function hostingTargets() {
@@ -66,8 +68,15 @@ function Card(props: { target: HostingTarget; product: ProductId }) {
   };
   return (
     <li class="card">
-      <div class="flex items-baseline justify-between gap-3">
-        <h3 class="font-semibold">{props.target.title}</h3>
+      <div class="flex items-center gap-3">
+        {/* The host's logo (a neutral icon when the hosting list names a host without one). */}
+        <Show
+          when={hostLogo(props.target.id)}
+          fallback={<NeutralIcon kind={props.target.kind === "self_host" ? "server" : "cloud"} />}
+        >
+          {(logo) => <Logo logo={logo()} height={24} />}
+        </Show>
+        <h3 class="flex-1 font-semibold">{props.target.title}</h3>
         <Show when={status() !== "available"}>
           <span class="badge">{status() === "beta" ? "Beta" : "Soon"}</span>
         </Show>
@@ -138,13 +147,14 @@ export default function Hosting() {
                 <a
                   href={`/hosting?product=${p.id}`}
                   aria-current={p.id === product() ? "page" : undefined}
-                  class="button-outline aria-[current=page]:bg-accent aria-[current=page]:font-semibold"
+                  class="button-outline h-10 aria-[current=page]:border-foreground/40 aria-[current=page]:bg-accent"
                   onClick={(e) => {
                     e.preventDefault();
                     setSearch({ product: p.id });
                   }}
                 >
-                  {p.name}
+                  {/* The product's lockup is the link's name (its text alternative). */}
+                  <Logo logo={PRODUCT_LOGOS[p.id]} unit={1} />
                 </a>
               </li>
             )}
