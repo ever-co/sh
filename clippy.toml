@@ -1,0 +1,4 @@
+# An unbounded channel lets one slow consumer grow memory without limit; use a bounded one.
+disallowed-methods = [
+  { path = "tokio::sync::mpsc::unbounded_channel", reason = "use a bounded channel so a slow consumer cannot exhaust memory" },
+]

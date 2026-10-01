@@ -1,0 +1,53 @@
+# The Rust half of ever.sh: the API service the web site reads hosting options from.
+#
+#   crates/core   ever-sh-core   hosting-target model, product ids, connect-code grammar, link rendering
+#   crates/api    ever-sh-api    axum service: /healthz, GET /v1/hosting-targets, GET /v1/hosting-targets/{id}/link
+#
+# Every dependency comes from crates.io under a permissive licence (deny.toml).
+
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/api"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+repository = "https://github.com/ever-co/sh"
+
+# `unwrap_used` / `expect_used` keep panics out of request paths; test code opts out per module.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+dbg_macro = "deny"
+todo = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+
+[workspace.dependencies]
+ever-sh-core = { path = "crates/core" }
+
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-saphyr = { version = "1", default-features = false, features = ["deserialize"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# tests only
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

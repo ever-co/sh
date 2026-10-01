@@ -1,0 +1,241 @@
+# Hosting options shown on /hosting: a saved copy of GET https://api.ever.co/v1/hosting-targets.
+#
+# The Ever Platform API is the source of truth for this list. This file exists so the site still shows
+# a complete list when that API cannot be reached: the API service in crates/api compiles it in and
+# answers from it, and the web build keeps a last-resort copy. Refresh it with `just refresh-targets`
+# (it fetches the API and rewrites this file; review the diff). Schema: hosts.schema.json, checked in CI.
+#
+# Rules the data follows:
+#   - A third-party host is listed only where a one-click template or a documented method exists.
+#   - `install_source` is what an install reports when it was set up this way (EVER_INSTALL_SOURCE);
+#     it is never inferred from the host.
+#   - `referral` names Ever's own referral code at a host (Hostinger, Railway), already written into that
+#     host's links; every other host has `referral: null` and its links carry no referral parameter. The
+#     site marks referral links as sponsored and shows "We may earn a referral fee" next to them.
+#   - Ever Demand is always `soon`.
+schema: ever.hosting-targets.v1
+as_of: "2026-10-01"
+targets:
+  # Ever Cloud
+  - id: ever-cloud
+    kind: ever_cloud
+    title: Ever Cloud
+    summary_md: Managed by Ever. Start from app.ever.co and pick the products you want.
+    products:
+      - { id: gauzy, status: available }
+      - { id: teams, status: available }
+      - { id: works, status: available }
+      - { id: rec, status: available }
+      - { id: traduora, status: available }
+      - { id: demand, status: soon }
+    install_source: cloud
+    link_template: https://app.ever.co/provision?product={product}&ref=ever.sh
+    snippet_kind: none
+    referral: null
+    order: 0
+    status: available
+
+  # Run it yourself
+  - id: docker-compose
+    kind: self_host
+    title: Docker Compose
+    summary_md: Prebuilt images on any Linux host with Docker Compose v2.20+.
+    requirements_md: 2 vCPU, 4 GB RAM, 20 GB disk for a small team.
+    docs_url: https://ever.sh/{product}/docker
+    products:
+      - { id: gauzy, status: available }
+      - { id: teams, status: available }
+      - { id: works, status: available }
+      - { id: rec, status: beta }
+      - { id: traduora, status: available }
+      - { id: demand, status: soon }
+    install_source: ever.sh
+    link_template: https://ever.sh/install/{product}?connect={connect}
+    snippet_kind: compose
+    referral: null
+    order: 10
+    status: available
+
+  - id: kubernetes
+    kind: self_host
+    title: Kubernetes
+    summary_md: Helm charts from charts.ever.co where available, plain manifests otherwise.
+    docs_url: https://ever.sh/{product}/kubernetes
+    products:
+      - { id: gauzy, status: available }
+      - { id: teams, status: available }
+      - { id: works, status: available }
+      - { id: traduora, status: beta }
+      - { id: demand, status: soon }
+    install_source: ever.sh
+    link_template: https://ever.sh/install/{product}?connect={connect}
+    snippet_kind: helm
+    referral: null
+    order: 11
+    status: available
+
+  - id: bare-metal
+    kind: self_host
+    title: Your own server
+    summary_md: Install from source or packages on a server you manage.
+    requirements_md: See each product's requirements page.
+    docs_url: https://ever.sh/{product}/bare-metal
+    products:
+      - { id: gauzy, status: available }
+      - { id: demand, status: soon }
+    install_source: ever.sh
+    link_template: https://ever.sh/{product}/bare-metal
+    snippet_kind: env
+    referral: null
+    order: 12
+    status: available
+
+  # Third-party hosts (independent companies; Ever does not operate them)
+  - id: hostinger
+    kind: third_party
+    title: Hostinger
+    summary_md: One-click Ever Gauzy application on a Hostinger VPS.
+    products:
+      - { id: gauzy, status: available, link: "https://www.hostg.xyz/aff_c?offer_id=815&aff_id=244060&url_id=6822" }
+    install_source: partner:hostinger
+    snippet_kind: none
+    referral: { program: hostinger-affiliate, param: aff_id }
+    order: 100
+    status: available
+
+  - id: railway
+    kind: third_party
+    title: Railway
+    summary_md: Deploy from a Railway template.
+    products:
+      - { id: teams, status: available, link: "https://railway.app/template/7_OfzR?referralCode=40jeja" }
+      - { id: gauzy, status: soon }
+    install_source: partner:railway
+    snippet_kind: none
+    referral: { program: railway-affiliate, param: referralCode }
+    order: 110
+    status: available
+
+  - id: render
+    kind: third_party
+    title: Render
+    summary_md: Deploy with a Render blueprint from the product repository.
+    products:
+      - { id: teams, status: available }
+      - { id: gauzy, status: beta }
+    install_source: partner:render
+    link_template: https://render.com/deploy?repo=https://github.com/ever-co/ever-{product}
+    snippet_kind: none
+    referral: null
+    order: 120
+    status: available
+
+  - id: easypanel
+    kind: third_party
+    title: Easypanel
+    summary_md: One-click template in the Easypanel self-hosted Docker panel.
+    products:
+      - { id: gauzy, status: available, link: "https://easypanel.io/templates/ever-gauzy" }
+    install_source: partner:easypanel
+    snippet_kind: none
+    referral: null
+    order: 130
+    status: available
+
+  - id: repocloud
+    kind: third_party
+    title: RepoCloud
+    summary_md: One-click managed hosting.
+    products:
+      - { id: gauzy, status: available, link: "https://repocloud.io/details/Ever%20Gauzy/" }
+      - { id: works, status: available, link: "https://repocloud.io/details/ever-works/" }
+    install_source: partner:repocloud
+    snippet_kind: none
+    referral: null
+    order: 140
+    status: available
+
+  - id: elestio
+    kind: third_party
+    title: Elestio
+    summary_md: Fully managed open-source hosting on the cloud of your choice, or on your own VM.
+    products:
+      - { id: traduora, status: available, link: "https://elest.io/open-source/traduora" }
+    install_source: partner:elestio
+    snippet_kind: none
+    referral: null
+    order: 150
+    status: available
+
+  - id: digitalocean
+    kind: third_party
+    title: DigitalOcean
+    summary_md: App Platform, Droplets or DigitalOcean Kubernetes.
+    products:
+      - { id: gauzy, status: available, link: "https://github.com/ever-co/ever-gauzy/tree/develop/.do" }
+      - { id: teams, status: available, link: "https://github.com/ever-co/ever-teams/wiki/Deploy-to-DigitalOcean" }
+    install_source: partner:digitalocean
+    snippet_kind: none
+    referral: null
+    order: 160
+    status: available
+
+  - id: heroku
+    kind: third_party
+    title: Heroku
+    summary_md: Deploy with the Heroku button (app.json).
+    products:
+      - { id: teams, status: available, link: "https://heroku.com/deploy?template=https://github.com/ever-co/ever-teams" }
+    install_source: partner:heroku
+    snippet_kind: none
+    referral: null
+    order: 170
+    status: available
+
+  - id: netlify
+    kind: third_party
+    title: Netlify
+    summary_md: Deploy the web app to Netlify.
+    products:
+      - { id: teams, status: available, link: "https://app.netlify.com/start/deploy?repository=https://github.com/ever-co/ever-teams" }
+    install_source: partner:netlify
+    snippet_kind: none
+    referral: null
+    order: 180
+    status: available
+
+  - id: koyeb
+    kind: third_party
+    title: Koyeb
+    summary_md: Run the prebuilt Docker image on Koyeb.
+    products:
+      - { id: teams, status: available, link: "https://app.koyeb.com/deploy?name=ever-teams&type=docker&builder=dockerfile&image=ghcr.io/ever-co/ever-teams-webapp:latest&env[PORT]=3030&ports=3030;http;/" }
+    install_source: partner:koyeb
+    snippet_kind: none
+    referral: null
+    order: 190
+    status: available
+
+  - id: northflank
+    kind: third_party
+    title: Northflank
+    summary_md: Deploy from a Northflank template.
+    products:
+      - { id: teams, status: available, link: "https://app.northflank.com/s/account/templates/new?data=656ed069216b5d387f5379c6" }
+    install_source: partner:northflank
+    snippet_kind: none
+    referral: null
+    order: 200
+    status: available
+
+  - id: fly
+    kind: third_party
+    title: Fly.io
+    summary_md: Deploy with fly.toml.
+    products:
+      - { id: teams, status: available, link: "https://github.com/ever-co/ever-teams/wiki/Deploy-to-Fly" }
+    install_source: partner:fly
+    snippet_kind: none
+    referral: null
+    order: 210
+    status: available

@@ -1,0 +1,17 @@
+[package]
+name = "ever-sh-core"
+description = "ever.sh shared rules: hosting targets, product ids, connect codes, link rendering"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
