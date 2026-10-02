@@ -94,6 +94,10 @@ const ALLOWED_HOSTS = [
   /^app\.koyeb\.com$/,
   /^app\.northflank\.com$/,
   /^heroku\.com$/,
+  // brand-kit pages cited as the sources of logos in apps/web/public/logos/README.md
+  /^www\.docker\.com$/,
+  /^devcenter\.heroku\.com$/,
+  /^northflank\.com$/,
   // loopback, the containers `just image` starts on a local Docker network, and the names
   // reserved for examples and tests (RFC 2606, RFC 6761)
   /^(127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\])$/,

@@ -238,8 +238,12 @@ export async function loadHosts(contentDir) {
   return doc;
 }
 
+/** Removes the Markdown twins of the last build. A README.md is never a twin (routes are
+ * lower-case): `public/logos/README.md`, the list of logo sources, stays. */
 async function removeTwins(dir) {
-  for (const file of await walk(dir)) if (file.endsWith(".md")) await rm(file);
+  for (const file of await walk(dir)) {
+    if (file.endsWith(".md") && basename(file) !== "README.md") await rm(file);
+  }
 }
 
 async function main() {
