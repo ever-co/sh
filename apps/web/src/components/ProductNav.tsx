@@ -1,10 +1,13 @@
 /**
- * A product's breadcrumbs and sub-navigation: its guide pages (only those that exist; a missing
- * content file simply has no tab) and, for installable products, the install page.
+ * A product's breadcrumbs and sub-navigation: the product's own lockup, its guide pages (only
+ * those that exist; a missing content file simply has no tab) and, for installable products, the
+ * install page.
  */
 import { For, Show } from "solid-js";
 
+import { Logo } from "~/components/Logo";
 import { productTabs } from "~/content";
+import { PRODUCT_LOGOS } from "~/logos";
 import { installable, type Product } from "~/products";
 
 export function ProductNav(props: { product: Product; current: string; currentLabel?: string }) {
@@ -29,8 +32,15 @@ export function ProductNav(props: { product: Product; current: string; currentLa
           )}
         </Show>
       </nav>
-      <nav aria-label={`${props.product.name} pages`}>
-        <ul class="flex flex-wrap gap-2 border-b border-border pb-3 text-sm">
+      <nav
+        aria-label={`${props.product.name} pages`}
+        class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-border pb-3"
+      >
+        {/* The lockup is the product's name here (its text alternative) and leads to its overview. */}
+        <a href={`/${props.product.id}`} class="inline-flex shrink-0 no-underline">
+          <Logo logo={PRODUCT_LOGOS[props.product.id]} unit={1.25} />
+        </a>
+        <ul class="flex flex-wrap gap-2 text-sm">
           <For each={tabs()}>
             {(tab) => (
               <li>

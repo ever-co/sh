@@ -109,7 +109,9 @@ jobs:
             if printf '%s' "$out" | grep -qi '^set-cookie:'; then echo "::error::a response set a cookie"; exit 1; fi
           }
           check /robots.txt 200 '^Disallow: /$'
-          check / 200 '<h1' 'Run <span'
+          check / 200 '<h1' 'Run <span' 'src="/logo/ever-selfhost.svg"' 'All product names, logos, and brands are property of their respective owners'
+          check /logo/ever-selfhost.svg 200 '^content-type: image/svg\+xml'
+          check /logos/vendors/docker.svg 200 '^content-type: image/svg\+xml'
           check /gauzy/docker 200 'rel="canonical" href="http://127.0.0.1:3000/gauzy/docker"'
           check "/hosting?product=gauzy" 200 'List as of ' 'We may earn a referral fee' 'rel="sponsored noopener"'
           check "/install/gauzy?connect=EVC-7K2M-9QHX-3RTW" 200 '^x-robots-tag: noindex' '^cache-control: private, no-store' 'EVER_CONNECT_CODE=EVC-7K2M-9QHX-3RTW'

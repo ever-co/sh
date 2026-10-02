@@ -1,9 +1,16 @@
-/** `/`: "Run Ever yourself", the products, the way to the hosting chooser. Runtime-free. */
+/**
+ * `/`: "Run Ever yourself", the products, where they run, the way to the hosting chooser.
+ * Runtime-free.
+ */
 import { Meta, Title } from "@solidjs/meta";
 import { For, Show } from "solid-js";
 
+import { type HostingTarget, parseTargets, statusFor } from "~/chooser/model";
+import { Logo, NeutralIcon } from "~/components/Logo";
 import { HeadLinks } from "~/components/Seo";
-import { PRODUCTS } from "~/products";
+import snapshot from "~/content.generated/hosts.json";
+import { hostLogo, PRODUCT_LOGOS } from "~/logos";
+import { PRODUCTS, type ProductId } from "~/products";
 
 const EXPLAINERS = [
   {
@@ -22,6 +29,32 @@ const EXPLAINERS = [
     text: "Self-hosting is free; the code is never locked behind a subscription.",
   },
 ];
+
+/**
+ * Where the products run, from the hosting list built into the site (the home page reads nothing
+ * over the network; the chooser at `/hosting` shows the live list). Each entry opens the chooser on
+ * the first product it offers.
+ */
+const KIND_ORDER: Record<HostingTarget["kind"], number> = {
+  self_host: 0,
+  ever_cloud: 1,
+  third_party: 2,
+};
+const HOSTS = parseTargets(snapshot.targets)
+  .map((target) => ({
+    target,
+    product: PRODUCTS.map((p) => p.id).find((id: ProductId) => {
+      const status = statusFor(target, id);
+      return status === "available" || status === "beta";
+    }),
+  }))
+  .filter((h) => h.product !== undefined)
+  .sort(
+    (a, b) =>
+      KIND_ORDER[a.target.kind] - KIND_ORDER[b.target.kind] ||
+      a.target.order - b.target.order ||
+      a.target.id.localeCompare(b.target.id),
+  );
 
 export default function Home() {
   return (
@@ -58,12 +91,13 @@ export default function Home() {
           <For each={PRODUCTS}>
             {(p) => (
               <li class="card flex flex-col">
-                <h3 class="text-lg font-semibold">
-                  <a href={`/${p.id}`} class="no-underline hover:underline">
-                    {p.name}
+                {/* The product's own lockup is its name here (its text alternative). */}
+                <h3 class="flex min-h-7 items-center gap-2">
+                  <a href={`/${p.id}`} class="inline-flex no-underline">
+                    <Logo logo={PRODUCT_LOGOS[p.id]} unit={1.25} />
                   </a>
                   <Show when={p.status === "soon"}>
-                    <span class="badge ml-2 align-middle">Soon</span>
+                    <span class="badge">Soon</span>
                   </Show>
                 </h3>
                 <p class="muted mt-2 flex-1 text-sm">{p.tagline}</p>
@@ -77,6 +111,38 @@ export default function Home() {
                     <a href={`/hosting?product=${p.id}`}>Where to host</a>
                   </Show>
                 </p>
+              </li>
+            )}
+          </For>
+        </ul>
+      </section>
+
+      <section class="mt-16" aria-labelledby="hosts-heading">
+        <h2 id="hosts-heading" class="text-2xl font-semibold tracking-tight">
+          Where they run
+        </h2>
+        <p class="muted mt-2 max-w-3xl">
+          On your own server or cluster, on Ever Cloud, or with a third-party host.
+        </p>
+        <ul class="mt-6 flex flex-wrap gap-3">
+          <For each={HOSTS}>
+            {(h) => (
+              <li>
+                <a
+                  href={`/hosting?product=${h.product}`}
+                  class="inline-flex items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium no-underline hover:bg-accent"
+                >
+                  {/* The host's name is written next to its logo: the image adds no text. */}
+                  <Show
+                    when={hostLogo(h.target.id)}
+                    fallback={
+                      <NeutralIcon kind={h.target.kind === "self_host" ? "server" : "cloud"} />
+                    }
+                  >
+                    {(logo) => <Logo logo={logo()} height={24} alt="" />}
+                  </Show>
+                  {h.target.title}
+                </a>
               </li>
             )}
           </For>

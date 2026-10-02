@@ -49,6 +49,7 @@ just image          # build both images and run them together
 | `content/install/<product>.md` | the text of each install page |
 | `content/platform/*.md` | Ever Connect, anonymous usage statistics, free and paid |
 | `content/hosting/` | chooser text, the hosting list and its schema |
+| `apps/web/public/logo/`, `apps/web/public/logos/` | this site's logo, and the logos of the Ever products and hosting providers (where each comes from: `logos/README.md`) |
 | `tools/` | repository checks, each with a self-test |
 | `deploy/docker/web/Dockerfile`, `deploy/docker/api/Dockerfile` | the two production images |
 

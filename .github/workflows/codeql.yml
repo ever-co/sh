@@ -1,8 +1,12 @@
 name: CodeQL
 
-# Weekly code scanning of the Rust API service and the TypeScript site, on GitHub-hosted runners.
-# It runs once the repository is public (code scanning of a private repository needs a licence);
-# until then every run is skipped.
+# Code scanning of the Rust API service and the TypeScript site, on GitHub-hosted runners.
+#
+# The repository uses GitHub's default code scanning setup (Settings > Code security), which scans
+# Rust, TypeScript and the workflows themselves every week. While default setup is on, GitHub
+# refuses results uploaded by a workflow like this one, so the weekly schedule here is skipped and
+# the job runs only when started by hand (after switching default setup off). Code scanning of a
+# private repository needs a licence, so a private copy skips every run.
 on:
   schedule:
     - cron: "17 4 * * 1"
@@ -14,7 +18,7 @@ permissions:
 jobs:
   analyze:
     name: analyze (${{ matrix.language }})
-    if: ${{ !github.event.repository.private }}
+    if: ${{ !github.event.repository.private && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
