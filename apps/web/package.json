@@ -2,6 +2,7 @@
   "name": "@ever-sh/web",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "description": "ever.sh: run Ever products on your own infrastructure.",
   "type": "module",
   "scripts": {
