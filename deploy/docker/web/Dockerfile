@@ -12,12 +12,13 @@
 #  start-up. GET /healthz answers without calling anything.
 # =============================================================================
 
-ARG NODE_IMAGE=node:24-alpine
+ARG NODE_IMAGE=node:26.12.1-alpine
 
 FROM ${NODE_IMAGE} AS base
 # pnpm is pinned by `packageManager` in the root package.json; naming it here too means the image
-# cannot build with another pnpm than the one that wrote the lockfile.
-RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
+# cannot build with another pnpm than the one that wrote the lockfile. Node 25+ no longer ships
+# corepack (on node:26-alpine a bare `corepack enable` exits 127), so install it from npm first.
+RUN npm install -g corepack@0.36.0 && corepack enable && corepack prepare pnpm@10.34.5 --activate
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /repo
 
